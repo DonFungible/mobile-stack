@@ -1,0 +1,7 @@
+#include "Base.xcconfig"
+
+APP_ENVIRONMENT = production
+APP_DISPLAY_NAME = MobileStack
+BUNDLE_ID_SUFFIX =
+API_BASE_URL = https:/$()/api.example.com
+USE_FIXTURES = NO

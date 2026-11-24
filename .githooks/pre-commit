@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+staged() { git diff --cached --name-only --diff-filter=ACMR -- "$@"; }
+
+if staged '.cursor/rules/*.mdc' | grep -q .; then
+  echo "Rules changed: regenerating AGENTS.md"
+  bun run --silent sync-ai-rules
+  git add AGENTS.md CLAUDE.md
+fi
+
+# Fast checks only. The full gate is `bun run check`, which CI runs.
+swift_files=$(staged 'apps/ios/*.swift' | grep -v '\.generated\.swift$' || true)
+if [ -n "$swift_files" ] && command -v swiftformat > /dev/null; then
+  # shellcheck disable=SC2086
+  swiftformat --lint --quiet --config apps/ios/.swiftformat $swift_files \
+    || { echo "Swift formatting: run 'bun run format'" >&2; exit 1; }
+fi
+
+if staged | grep -qE '(^|/)(Secrets\.xcconfig|secrets\.properties|\.env)$'; then
+  echo "Refusing to commit a secrets file." >&2
+  exit 1
+fi

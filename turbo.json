@@ -1,0 +1,79 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalPassThroughEnv": [
+    "ANDROID_HOME",
+    "ANDROID_SDK_ROOT",
+    "JAVA_HOME",
+    "DEVELOPER_DIR",
+    "SIM_DEVICE",
+    "DERIVED_DATA",
+    "MAESTRO_*",
+    "RELEASE_*"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "generate"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": ["dist/**", "build/**", "app/build/outputs/**"]
+    },
+    "generate": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": ["**/*.generated.swift", "**/generated/**", "*.xcodeproj/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["generate"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["generate"],
+      "cache": false
+    },
+    "lint:check": {
+      "dependsOn": ["generate"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "format": {
+      "cache": false
+    },
+    "format:check": {
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["generate"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "test:app": {
+      "dependsOn": ["generate"],
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["generate"],
+      "cache": false,
+      "persistent": true
+    },
+    "build:cli": {
+      "dependsOn": ["generate"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": [
+        "Packages/AppCore/.build/debug/mobilestack-cli",
+        "cli/build/install/**"
+      ]
+    },
+    "behavior:ios": {
+      "dependsOn": ["@mobile-stack/ios#build:cli"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "behavior:android": {
+      "dependsOn": ["@mobile-stack/android#build:cli"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    }
+  }
+}

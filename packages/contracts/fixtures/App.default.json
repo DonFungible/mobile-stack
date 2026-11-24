@@ -1,0 +1,13 @@
+{
+  "http": [
+    {
+      "method": "GET",
+      "path": "min-version",
+      "status": 200,
+      "body": {
+        "ios": "0.1.0",
+        "android": "0.1.0"
+      }
+    }
+  ]
+}

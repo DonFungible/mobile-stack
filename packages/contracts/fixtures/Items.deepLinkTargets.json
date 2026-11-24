@@ -1,0 +1,26 @@
+{
+  "http": [
+    {
+      "method": "GET",
+      "path": "items/42",
+      "status": 200,
+      "body": {
+        "id": 42,
+        "title": "Ship the first build",
+        "summary": "Staging build on a real device, signed in CI.",
+        "updatedAt": "2026-11-01T09:00:00Z"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "items/7",
+      "status": 200,
+      "body": {
+        "id": 7,
+        "title": "Ship the first build",
+        "summary": "Staging build on a real device, signed in CI.",
+        "updatedAt": "2026-11-01T09:00:00Z"
+      }
+    }
+  ]
+}

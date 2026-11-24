@@ -1,0 +1,8 @@
+#include "Base.xcconfig"
+
+APP_ENVIRONMENT = development
+APP_DISPLAY_NAME = MobileStack Dev
+BUNDLE_ID_SUFFIX = .dev
+// "$()" keeps xcconfig from reading "//" as a comment.
+API_BASE_URL = https:/$()/api.staging.example.com
+USE_FIXTURES = YES

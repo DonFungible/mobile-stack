@@ -1,0 +1,92 @@
+---
+description: The architecture - a UI-free core, a strict view model contract, introspection nodes, and a CLI
+alwaysApply: true
+---
+
+# Reflex: the architecture
+
+The app's logic runs with no UI, so its behavior can be tested in milliseconds without a simulator, and one test suite keeps both platforms in step. Four pieces make that work. Each has rules that are not negotiable, because the whole value is that every screen has the same shape.
+
+## 1. Core has no UI
+
+Core owns everything that is not drawing: view models, navigation state, the session, networking, caching, deep links, feature flags. It is a Swift package that builds on macOS and a plain JVM Gradle module.
+
+- **No UI imports in core.** No `SwiftUI`, `UIKit`, `android.*` or Compose. On Android the module type makes it impossible; on iOS a lint rule does.
+- **Core declares what it needs; hosts provide it.** Anything from outside the process — HTTP, the token store, preferences, haptics, the share sheet, flags — is a protocol in core's `Platform`, passed into `MobileStackCore`'s constructor. No DI framework, no singletons.
+- **Two hosts construct the same core.** The mobile app passes real services (`AppHost`). The CLI passes fixtures. If something cannot be reached from the CLI, it is in the wrong module.
+- **A new platform capability** is: a protocol in `Platform`, a real implementation in the app's `Platform/` folder, a no-op or fixture default, on both platforms.
+
+## 2. Every view model looks the same
+
+```swift
+public final class SettingsViewModel: ViewModel<SettingsViewModel.State, SettingsViewModel.Action, SettingsViewModel.Message> {
+    public struct State: Equatable { public var hapticsEnabled: Bool }
+
+    public enum Action {                    // what a view (or the CLI) can do
+        case setHaptics(enabled: Bool)
+        case signOut
+    }
+
+    public enum Message: ViewMessage {      // everything the reducer handles
+        case viewAction(Action)
+    }
+
+    override func update(state: inout State, message: Message) { ... }   // the only writer
+}
+```
+
+- **State** is everything the screen shows. If a user can see it, it is in state.
+- **Action** is everything a user can do. It is the public surface.
+- **Message** is internal: every action wrapped as `viewAction`, plus results coming back from services.
+- **`update` is the only place state changes.** Decisions live here: whether `Decrement` does anything at zero is `update`'s call, made once, for a tap and for the CLI alike.
+- **Async work goes through `run`**, which feeds its result back as a message. Never mutate state from a callback.
+- **Services arrive through the constructor** (`Dependencies`). A view model never constructs a client or reads a global.
+- **Navigation is a call on `Navigating`**, not a view. Pushing a screen is a state change on the navigator.
+
+A view's entire contract is: read `viewModel.state`, call `viewModel.send(action:)`. It cannot do more: `update`, messages and the state setter are internal to core, and a lint rule rejects any other member access on a view model from a screen.
+
+## 3. Every view model has an introspection node
+
+A node is the view model seen from outside: a `name`, its `state` as JSON, its `actions`, and its `child`. Swift nodes are extensions in `Introspection/Nodes.swift`; Kotlin nodes are `<Name>ViewModelIntrospectionNode` classes in `introspection/Nodes.kt`. The app never calls them.
+
+Three rules:
+
+- **If a user can see it, it's in the node's state. If a user can do it, it's in its actions.** State keys and action titles are identical on both platforms.
+- **A node never repeats logic.** It lists every action, every time, with no conditionals. If you are writing an `if` in a node, the rule belongs in `update` and the result belongs in state.
+- **Actions go through `send(action:)`, nothing else.** A node never calls another method or touches state. The CLI can do nothing a view could not.
+
+A parameterized action declares an input type and a schema. The payload is decoded before the closure runs, so a malformed one never reaches the view model.
+
+## 4. The tree, and focus
+
+Nodes mirror the object tree: `App` -> `Stack` -> the top screen. The CLI always focuses the **deepest** node, the way a user only touches what is on top. Containers **lend** a few actions to whatever is focused: the stack lends `goBack`, the app root lends `openLink`. Anything else is refused, with the list of what is available.
+
+## Adding a screen
+
+Do every step on both platforms, in one PR.
+
+1. **Fixture** — a scenario in `packages/contracts/fixtures/` for each state the screen can be in (see the `add-fixture` skill).
+2. **View model** in core `Features/`: State, Action, Message, `update`.
+3. **Route** — a `Route` case, and a `Screen` case built in `StackNavigator`.
+4. **Node** — name, state as JSON, one entry per action.
+5. **Journey** — a behavior test in `packages/behavior/tests/` that walks to the screen and uses it. Run `bun run behavior`; it must pass on both platforms before any view exists.
+6. **Screen** in the mobile app: design-system primitives, `viewModel.state` in, `send` out.
+7. **Verify on a device** for what only pixels show.
+
+## The CLI
+
+```
+$ bun run cli ios --fixtures App.default,Items.three,Session.signedIn
+> ls
+ItemList
+  state   {"status":"loaded","items":[...],"isRefreshing":false,"errorMessage":null}
+  actions Refresh, SelectItem {id}, OpenSettings, goBack, openLink {url}
+> do SelectItem {"id": 2}
+> ls
+ItemDetail
+  ...
+```
+
+- `bun run cli <platform> --attach` talks to the debug build running on a simulator or emulator through the same protocol; the screen follows along. The server exists only in debug builds.
+- The fastest way to find out what the app does is to open a terminal and type `ls`. Reach for it before reading code, and before a simulator.
+- The CLI is a tool for agents: no colors, no prompts, no wizard. Keep it that way.

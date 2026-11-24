@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-ci
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      ios: ${{ steps.filter.outputs.ios }}
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared: &shared
+              - 'packages/**'
+              - 'package.json'
+              - 'bun.lock'
+              - 'turbo.json'
+              - '.github/**'
+            ios:
+              - *shared
+              - 'apps/ios/**'
+              - 'packages/behavior/**'
+            android:
+              - *shared
+              - 'apps/android/**'
+              - 'packages/behavior/**'
+
+  shared:
+    name: Shared packages and docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Format and lint (Biome)
+        run: bunx biome check .
+      - name: Test packages
+        run: bunx turbo run test typecheck --filter='./packages/*'
+      - name: AGENTS.md is in sync with .cursor/rules
+        run: bun run sync-ai-rules && git diff --exit-code AGENTS.md
+
+  android:
+    name: Android
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Generated tokens are committed
+        run: bunx turbo run generate --filter=@mobile-stack/android && git diff --exit-code apps/android
+      - name: Format, lint, compile, test
+        run: bunx turbo run format:check lint:check typecheck test --filter=@mobile-stack/android
+      # The same journeys run in the iOS job. A PR merges only when both pass.
+      - name: Behavior suite (headless Kotlin core)
+        run: bunx turbo run behavior:android
+      - name: Build staging
+        run: bunx turbo run build --filter=@mobile-stack/android
+
+  ios:
+    name: iOS
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
+    # Pin the image: a new Xcode changes warnings, and warnings are errors here.
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Install Swift tooling
+        run: brew install xcodegen swiftlint swiftformat xcbeautify
+      - name: Generated tokens are committed
+        run: bunx turbo run generate --filter=@mobile-stack/ios && git diff --exit-code apps/ios
+      - name: Format, lint, compile, test
+        run: bunx turbo run format:check lint:check typecheck test --filter=@mobile-stack/ios
+      - name: Behavior suite (headless Swift core)
+        run: bunx turbo run behavior:ios
+      - name: Build staging
+        run: bunx turbo run build --filter=@mobile-stack/ios

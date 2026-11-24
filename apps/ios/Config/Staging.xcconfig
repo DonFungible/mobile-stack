@@ -1,0 +1,7 @@
+#include "Base.xcconfig"
+
+APP_ENVIRONMENT = staging
+APP_DISPLAY_NAME = MobileStack Staging
+BUNDLE_ID_SUFFIX = .staging
+API_BASE_URL = https:/$()/api.staging.example.com
+USE_FIXTURES = YES

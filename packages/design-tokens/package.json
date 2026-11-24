@@ -1,0 +1,13 @@
+{
+  "name": "@mobile-stack/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun generate.mjs",
+    "test": "bun test"
+  }
+}

@@ -1,0 +1,32 @@
+name: Preview Build
+
+# An installable staging build for QA, on demand. Signed with the shared debug key: not for stores.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android staging APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: bunx turbo run build --filter=@mobile-stack/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-staging-${{ github.sha }}
+          path: apps/android/app/build/outputs/apk/staging/debug/*.apk
+          retention-days: 14

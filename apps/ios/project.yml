@@ -1,0 +1,47 @@
+name: MobileStack
+options:
+  createIntermediateGroups: true
+  groupSortPosition: top
+  generateEmptyDirectories: true
+configs:
+  Debug: debug
+  Staging: release
+  Release: release
+configFiles:
+  Debug: Config/Debug.xcconfig
+  Staging: Config/Staging.xcconfig
+  Release: Config/Release.xcconfig
+packages:
+  AppCore:
+    path: Packages/AppCore
+targets:
+  MobileStack:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: ../../packages/contracts/fixtures
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: AppCore
+        product: AppCore
+      - package: AppCore
+        product: IntrospectionKit
+schemes:
+  MobileStack:
+    build:
+      targets:
+        MobileStack: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  MobileStack Staging:
+    build:
+      targets:
+        MobileStack: all
+    run:
+      config: Staging
+    archive:
+      config: Staging

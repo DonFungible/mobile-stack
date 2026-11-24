@@ -1,0 +1,63 @@
+---
+description: Where state lives, networking, the query cache and vendor seams
+globs: apps/ios/**/*.swift,apps/android/**/*.kt
+---
+
+# Data and state
+
+## Where state lives
+
+| Kind | Lives in | Example |
+| --- | --- | --- |
+| What a screen shows | its view model's `State` | the items list, a loading flag, a toggle |
+| Shared across screens | a store in core, passed through `Dependencies` | `SessionStore`, the query cache |
+| Purely visual, never asserted on | the view (`@State` / `remember`) | scroll offset, a press highlight |
+
+If a behavior test would want to assert on it, it is view model state, not view state.
+
+## Loading server data
+
+A view model loads through a repository and the query cache, and reflects the result in state:
+
+```swift
+run({ try await queries.fetch(.items(), force: force, repository.items) }, then: Message.loaded)
+```
+
+- **State carries the whole picture**: `status` (`loading` / `loaded` / `failed`), the data, `isRefreshing`, `errorMessage`. The view renders it with `LoadStatusView` / `LoadStatusContent`; it decides nothing.
+- **A refresh keeps the last good value on screen.** Only a first load, or a retry after failure, shows loading.
+- **A failed refresh is not an error state.** The user keeps what they had.
+- **Query keys are functions** next to the repository (`QueryKey.item(id:)`). Trailing parts omitted make the key a prefix: `queries.invalidate(.item(id: nil))` drops every cached item after a mutation.
+
+### Adding an endpoint
+
+1. A scenario in `packages/contracts/fixtures/` with the response.
+2. Model, repository method and key function, on both platforms.
+3. A view model message for the result, and state for what the user sees.
+4. A journey that exercises it.
+
+## Networking
+
+`APIClient` / `ApiClient` is the only way out to the network. It adds the API version, an `x-request-id`, the bearer token and a 30s timeout, and turns every failure into one `APIError` / `ApiError`:
+
+- `network`, `unauthorized`, `http(status)`, `decoding`.
+- A 401 marks the session expired; the app root signs the user out. Screens do not handle 401.
+- Only 5xx and decoding failures are reported, tagged with a normalized route (`items/:id`) so one broken endpoint is one issue.
+- State shows `error.userMessage`. Never a raw error.
+
+The transport is a `Platform` service: `URLSession` / OkHttp in the app, fixtures in the CLI and in fixture builds.
+
+## Stores
+
+- One store per concern, with every mutation a method.
+- Anything that holds user data registers a cleanup with `SessionStore.registerSignOutCleanup`. Sign-out then cannot miss a cache.
+- Persisted keys are declared in `StorageKey`. Keys holding per-user data take the user id.
+- Tokens go in the `TokenStore` (Keychain / Keystore in the app). Never in preferences.
+
+## Seams
+
+Third-party SDKs sit behind a protocol in core's `Services/` or `Platform`: `Analytics`, `ErrorReporter`, `FeatureFlagProvider`, `HapticsPlayer`, `ExternalActions`. Swapping a console implementation for a real one is a change in the host (`AppHost`), nowhere else.
+
+- **Analytics events** are cases in `AnalyticsEvent`: snake_case name, typed properties.
+- **Feature flags fail closed.** `flags.isEnabled(.x)` is false until the provider says true. Read a flag in the view model and put the result in state (`canShare`), so a journey can assert on it.
+- **Haptics are semantic** and fired from `update` (`haptics.play(.selection)`); the user's preference is checked in one place.
+- **Logging** goes through `Log`. `print`, `NSLog`, `println` and `android.util.Log` are lint errors outside the host.

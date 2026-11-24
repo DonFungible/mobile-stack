@@ -1,0 +1,22 @@
+{
+  "name": "@mobile-stack/ios",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate": "bash scripts/generate.sh",
+    "build": "bash scripts/xcodebuild.sh build Staging",
+    "typecheck": "bash scripts/xcodebuild.sh build Debug",
+    "lint": "swiftlint lint --fix --quiet && swiftlint lint --strict --quiet",
+    "lint:check": "swiftlint lint --strict --quiet",
+    "format": "swiftformat .",
+    "format:check": "swiftformat --lint .",
+    "test": "swift test --package-path Packages/AppCore",
+    "test:app": "bash scripts/e2e.sh",
+    "dev": "bash scripts/run-simulator.sh",
+    "build:cli": "swift build --package-path Packages/AppCore --product mobilestack-cli"
+  },
+  "devDependencies": {
+    "@mobile-stack/contracts": "workspace:*",
+    "@mobile-stack/design-tokens": "workspace:*"
+  }
+}

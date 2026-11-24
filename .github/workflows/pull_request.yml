@@ -1,0 +1,40 @@
+name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  assign_author:
+    name: Assign author
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: toshimaru/auto-author-assign@v2.1.1
+
+  title:
+    name: Conventional title
+    runs-on: ubuntu-latest
+    env:
+      # Event data reaches the shell only through env: a title may contain shell metacharacters.
+      TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - run: |
+          pattern='^(feat|fix|chore|docs|refactor|test|perf|build|ci|revert)(\([a-z0-9-]+\))?!?: .+'
+          [[ "$TITLE" =~ $pattern ]] || { echo "::error::PR title must be 'type(scope): summary'"; exit 1; }
+
+  ci:
+    if: github.event.pull_request.draft == false && github.event.action != 'edited'
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/ci.yml

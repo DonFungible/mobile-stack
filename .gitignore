@@ -1,0 +1,44 @@
+node_modules/
+.turbo/
+dist/
+.DS_Store
+
+# secrets — never commit; see docs/environments.md
+.env
+.env.local
+*.jks
+*.keystore
+!apps/android/keystore/debug.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+Secrets.xcconfig
+secrets.properties
+google-services.json
+GoogleService-Info.plist
+
+# iOS
+apps/ios/*.xcodeproj/
+apps/ios/.build/
+apps/ios/build/
+apps/ios/DerivedData/
+apps/ios/Packages/*/.build/
+apps/ios/Packages/*/.swiftpm/
+xcuserdata/
+apps/ios/buildServer.json
+*.xcresult
+
+# Android
+apps/android/.gradle/
+apps/android/.kotlin/
+apps/android/build/
+apps/android/*/build/
+apps/android/local.properties
+apps/android/.idea/
+*.iml
+
+# agent + verification scratch
+.sim-shots/
+.claude/worktrees/
+.claude/settings.local.json

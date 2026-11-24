@@ -1,0 +1,33 @@
+---
+description: How to open, validate and merge a pull request
+alwaysApply: true
+---
+
+# PR guidelines
+
+A PR passes three gates in order. Full reference: `/PR_GUIDELINES.md`.
+
+## Gate 1 — Opening
+
+- **One change, one PR. Surgical diff.** Touch only what the change needs. No drive-by refactors, no renames "while I'm here", no reformatting untouched files, no speculative fixes to shared primitives without a repro.
+- **Both platforms in the one PR** (see platform parity), unless the lagging one is behind a flag.
+- **Branch** `<author>/<slug>`, or your tracker's branch name. **Title** is a conventional commit: `type(scope): summary` with `feat` / `fix` / `chore` / `docs` / `refactor` / `test`, and scope `ios`, `android`, or a feature name. A hook and CI both check it.
+- **Description** follows the template: what and why (Problem / Root cause / Fix for a bug), screenshots from both platforms for anything visible, a test plan that names what you could **not** verify, and rollout or backend dependencies.
+- Draft for larger work; ready for small fixes. CI skips drafts.
+
+## Gate 2 — Production-ready (before requesting review)
+
+- **Reuse before building.** Search `DesignSystem`, `Common` and the feature folder for a primitive or helper that already does the job, and extend it.
+- **Design-system primitives only** in feature code; tokens for every color, space and radius.
+- **A journey covers it.** New behavior has a behavior test that passes on both platforms; loading, empty, failure and the inverse action are fixtures and steps, not manual checks.
+- **Seen on a simulator and an emulator** for anything visible.
+- **Logic in the core.** Decisions are in `update`; views read state and send actions; nodes have no conditionals.
+- **Ship safely**: unfinished work behind a feature flag; stay compatible with the backend that is live today.
+- **No native config drift**: a change to `project.yml`, `Config/*.xcconfig`, `build.gradle.kts`, the manifest or signing is called out at the top of the description.
+- **Green locally**: `bun run check`, which includes the behavior suite on both platforms.
+
+## Gate 3 — Merge-ready
+
+- Approved, with every thread answered: cite the fixing commit, or disagree explicitly with a reason.
+- CI green and the latest `main` merged in. Do not force-push a branch under review.
+- Squash-merge. The author merges, after confirming any backend deploy order.

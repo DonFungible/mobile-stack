@@ -1,0 +1,22 @@
+{
+  "name": "@mobile-stack/android",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate": "bash scripts/generate.sh",
+    "build": "./gradlew :app:assembleStagingDebug --console=plain -q",
+    "typecheck": "./gradlew :app:compileDevDebugKotlin :app:compileDevReleaseKotlin --console=plain -q",
+    "lint": "./gradlew spotlessApply :app:checkConventions :app:lintDevDebug --console=plain -q",
+    "lint:check": "./gradlew :app:checkConventions :app:lintDevDebug --console=plain -q",
+    "format": "./gradlew spotlessApply --console=plain -q",
+    "format:check": "./gradlew spotlessCheck --console=plain -q",
+    "test": "./gradlew :core:test --console=plain -q",
+    "test:app": "bash scripts/e2e.sh",
+    "dev": "bash scripts/run-emulator.sh",
+    "build:cli": "./gradlew :cli:installDist --console=plain -q"
+  },
+  "devDependencies": {
+    "@mobile-stack/contracts": "workspace:*",
+    "@mobile-stack/design-tokens": "workspace:*"
+  }
+}

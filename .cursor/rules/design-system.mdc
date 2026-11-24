@@ -1,0 +1,42 @@
+---
+description: Design-system primitives, tokens, and the raw controls that are lint-banned in feature code
+globs: apps/ios/App/**/*.swift,apps/android/app/src/main/**/*.kt
+---
+
+# Design system
+
+Screens are built from design-system primitives and draw exactly what their view model's state says. The design system is the only place allowed to touch raw platform controls, colors and fonts, so a fix to press feedback, hit targets or accessibility lands everywhere at once.
+
+## Banned outside the design system
+
+Enforced by SwiftLint custom rules (`apps/ios/.swiftlint.yml`) and `checkConventions` (`apps/android/app/conventions.gradle.kts`). Both fail CI.
+
+| Don't use | Use instead |
+| --- | --- |
+| `Text(...)` / material3 `Text` | `AppText(text, style:, color:)` |
+| `Button(...)` / material3 buttons | `AppButton`, `AppIconButton`, or `AppPressable` for a tappable row |
+| `Toggle(...)` / material3 `Switch` | `AppToggle` |
+| `Modifier.clickable` (Android) | `AppPressable` |
+| Color literals, `Color.red`, `Color(0x...)`, `UIColor(...)` | `AppColor.<token>` |
+| `.font(...)`, `TextStyle(...)`, `fontSize =` | an `AppText` style |
+| `UIScreen.main` | `GeometryReader` / `containerRelativeFrame` |
+
+If a primitive cannot do what a design needs, extend the primitive. Do not reach around it.
+
+## Rules
+
+- **Every screen's root is `ScreenContainer`.** It owns the background, the title bar and system-bar insets.
+- **Spacing and radii come from `Spacing` and `Radius`.** No bare numbers for padding or corner radius.
+- **Hit targets are at least 44pt / 48dp.** `AppButton`, `AppIconButton` and `AppPressable` guarantee it; a custom gesture must too.
+- **Icon-only controls need a label.** `AppIconButton` makes it a required parameter.
+- **Text scales with the system font size.** `AppText` handles it. Never fix a height around text.
+- **Respect Reduce Motion.** Animation beyond the standard press fade checks `accessibilityReduceMotion` (iOS) or the animator duration scale (Android).
+- **Haptics are fired by view models**, semantically (`haptics.play(.success)`). A view never fires one.
+- **Loading, empty and error are states you design.** `LoadStatusView` / `LoadStatusContent` render loading and failure from view model state; the screen handles empty with `MessageState`.
+- **Lists are lazy and keyed.** `LazyVStack` + `ForEach` over `Identifiable` on iOS; `LazyColumn` with `key` and `contentType` on Android. Paginate anything unbounded.
+
+## Adding a token
+
+1. Add it to `packages/design-tokens/tokens.json`.
+2. `bun run generate`.
+3. For a color, expose it in `AppColor` on both platforms.

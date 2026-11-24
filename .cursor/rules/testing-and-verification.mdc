@@ -1,0 +1,58 @@
+---
+description: The test trophy - what to test where, and how to prove a change works
+alwaysApply: true
+---
+
+# Testing and verification
+
+Three layers, with a very wide middle.
+
+## Behavior tests: almost everything
+
+`packages/behavior/tests/*.test.ts`, run by Bun against the headless core. Business rules, validation, navigation, error handling, session and deep links, whole user journeys. **One file runs unchanged on iOS and Android**; that suite is the source of truth for what the app does.
+
+```ts
+test('a guest can change a setting and sign out', async () => {
+  await using session = await createBehaviorSession({ fixtures: [fixture('Items.three')] })
+  await enterAsGuest(session)
+
+  await session.do({
+    action: 'OpenSettings',
+    expectation: ({ name, state }) => {
+      expect(name).toBe('Settings')
+      expect(state.hapticsEnabled).toBe(true)
+    },
+  })
+})
+```
+
+- **A test is a transcript of what a user did and what they saw.** `do` runs an action, then polls the focused node until the expectation passes or two seconds elapse, and fails with the last state seen. No sleeps, no waits.
+- **Fold a journey into one test.** A failure already names the step, the action and the state. Split only when the *fixtures* differ (a save that fails needs its own setup).
+- **Fixtures are constructor arguments.** An edge case is a different scenario file, never a mock patched mid-test. There are no mocking frameworks in the suite.
+- **Zero network, enforced.** A request with no fixture is a violation and fails the test even if the app recovered. So is any real connection attempt.
+- **Both platforms or neither.** A change is not done until `bun run behavior` passes on iOS and Android. If they disagree, one of them has a bug; the test decides which.
+- Tests in a file run one after another against one warm host process. Do not use `test.concurrent`.
+
+## Unit tests: primitives only
+
+`swift test` and `:core:test`. The base view model, the query cache, the API client, parsers, formatters, the introspection session. Small and few. If a rule is reachable through a screen, it belongs in a behavior test, not here.
+
+## Device: what only pixels can show
+
+The behavior suite does not test the UI. Checking that a button is wired to `send` is rarely where the bugs are, but layout, tokens, accessibility and platform chrome are real.
+
+```bash
+bun run ios && bun run android
+maestro test -e APP_ID=com.example.mobilestack.dev e2e/
+bun run cli ios --attach        # drive the running build from the terminal
+```
+
+- A change a user can see is run on a simulator and an emulator: large font size, VoiceOver / TalkBack order, the system back gesture.
+- `e2e/` holds two thin flows that prove the views are wired to the core. Do not grow it into a second behavior suite.
+- If you could not run something, say so. "Unverified" is acceptable in a PR; "verified" when it was not is not.
+
+An agent without a simulator verifies behavior fully with `bun run check`, and lists what still needs eyes under **Needs a device** in the PR.
+
+## Order of work
+
+Write the journey first. It fails on both platforms, then passes on both, before a single view exists. `bun run check` is exactly what CI runs.

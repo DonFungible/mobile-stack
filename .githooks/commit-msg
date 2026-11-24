@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+subject=$(head -1 "$1")
+pattern='^(feat|fix|chore|docs|refactor|test|perf|build|ci|revert)(\([a-z0-9-]+\))?!?: .+'
+
+if ! [[ "$subject" =~ $pattern ]] && ! [[ "$subject" =~ ^(Merge|Revert)\  ]]; then
+  echo "Commit subject must be a conventional commit: type(scope): summary" >&2
+  echo "  e.g. feat(ios): add item sharing" >&2
+  exit 1
+fi

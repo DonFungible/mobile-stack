@@ -1,0 +1,10 @@
+{
+  "http": [
+    {
+      "method": "GET",
+      "path": "items",
+      "status": 503,
+      "body": {}
+    }
+  ]
+}

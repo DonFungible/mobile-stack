@@ -1,0 +1,17 @@
+---
+description: Keeping the iOS and Android apps in step
+alwaysApply: true
+---
+
+# Platform parity
+
+**Share the test, not the code.** Writing the same view model twice is cheaper than maintaining a bridge between two platforms, and it keeps each app able to do what its platform does best. What holds them together is one behavior suite that both must pass.
+
+- **One suite, two platforms.** `bun run behavior` runs every journey against the Swift core and the Kotlin core. A PR cannot merge if it passes on only one.
+- **Same surface.** Node names, state keys and action titles are identical. A difference is a failing test, not a review comment.
+- **Same fixtures.** Both cores read the scenario files in `packages/contracts/fixtures`; so do the fixture builds of both apps.
+- **Tokens, not values.** A new color, spacing step or type style goes into `packages/design-tokens/tokens.json`. Never add one to a single platform.
+- **Same names.** Keep type and file names aligned so a reviewer can diff the twins side by side.
+- **One PR.** Ship both platforms together. If one must lag, hide the leading one behind a feature flag and say so in the PR.
+
+Platform idiom wins in the mobile layer: iOS uses a `NavigationStack` and the system back button, Android draws its own top bar and handles the system back gesture. The core's behavior matches exactly; the widgets need not.

@@ -1,0 +1,21 @@
+# A link that arrives before sign-in is held, then replayed with a working back stack.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink: mobilestack://settings/about
+# iOS asks before handing a custom-scheme link to an app, but only until the user has agreed once.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: Open
+          optional: true
+- tapOn:
+    id: welcome-continue
+- assertVisible: Bundled fixtures
+- runFlow: helpers/back.yaml
+- assertVisible:
+    id: settings-sign-out

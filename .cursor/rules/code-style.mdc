@@ -1,0 +1,53 @@
+---
+description: Comments, parameter ordering and file conventions for Swift and Kotlin
+globs: apps/**/*.swift,apps/**/*.kt
+---
+
+# Code style
+
+Formatting is not a review topic: SwiftFormat and ktlint decide. Run `bun run format`.
+
+## Comments
+
+Default to **no comment**. Clear names and small functions carry the meaning.
+
+- Comment the **why**, never the what. One short line.
+- A comment is justified for a non-obvious workaround, a platform gotcha, or intent the code cannot express. The bar: the reader would be misled without it.
+- A doc comment (`///`, `/** */`) on a seam or a primitive states its contract. Not on every function.
+- No step narration inside a function body.
+- **No ticket ids in source** (lint-enforced). They belong in the commit and the PR.
+
+```swift
+// Bad: restates the code
+// Sign the user out
+session.signOut()
+
+// Good: a why the code cannot show
+// "$()" keeps xcconfig from reading "//" as a comment.
+```
+
+## Parameter order
+
+For a view's or composable's parameters, and at its call sites:
+
+1. Required values
+2. Optional values (defaulted) — on Android, `modifier` comes first among these
+3. Required closures
+4. Optional closures, with the content/trailing closure last
+
+```swift
+init(_ title: String, variant: AppButtonVariant = .primary, isLoading: Bool = false, action: @escaping () -> Void)
+```
+
+```kotlin
+fun AppButton(title: String, modifier: Modifier = Modifier, variant: AppButtonVariant = AppButtonVariant.Primary, onClick: () -> Unit)
+```
+
+## Conventions
+
+- One screen per file, named for the screen. Private helpers below the main type.
+- Views and composables hold no logic: state in, actions out.
+- Dependencies come through constructors, from the host (`AppHost`) down. No singletons, no `static let shared`.
+- Swift: strict concurrency is on and warnings are errors. No `@unchecked Sendable` outside `AppCore`, no force unwraps.
+- Kotlin: warnings are errors. No `!!`. Catch the specific exception, never bare `Exception`.
+- Remove dead code. Do not leave commented-out code.

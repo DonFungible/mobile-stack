@@ -1,0 +1,39 @@
+---
+description: Environments, secrets, versioning and release rules
+globs: apps/ios/Config/**,apps/ios/project.yml,apps/android/**/*.gradle.kts,apps/android/gradle.properties,.github/workflows/**
+---
+
+# Environments and release
+
+## Environments
+
+| | iOS configuration | Android flavor | App id suffix | Data |
+| --- | --- | --- | --- | --- |
+| Development | `Debug` | `dev` | `.dev` | fixtures |
+| Staging | `Staging` | `staging` | `.staging` | fixtures until you set a real URL |
+| Production | `Release` | `production` | none | live API |
+
+- Each environment has its own app id, so all three install side by side.
+- Environment values live in `apps/ios/Config/<Env>.xcconfig` and the flavor block of `apps/android/app/build.gradle.kts`. Keep the two in step.
+- `AppConfig` validates them **at launch** and refuses to start on a bad value. Production can never run on fixtures.
+- Never branch on debug-vs-release in feature code. Read `config.environment` or a feature flag.
+- The introspection socket server exists only in debug builds (`#if DEBUG` on iOS, the `debug` source set on Android). Never ship it.
+
+## Secrets
+
+- Local keys go in `apps/ios/Config/Secrets.xcconfig` and `apps/android/secrets.properties`. Both are gitignored and created from their `.example` by `bun run generate`.
+- Anything compiled into an app is public. Only client-safe keys belong in those files; real secrets stay on the server.
+- Signing keys, store credentials and provisioning profiles live in CI secrets only. Never in the repo, never in an agent's environment.
+- The committed `apps/android/keystore/debug.keystore` is deliberate: one debug key for the whole team, so SHA-bound services work on every machine. It signs nothing that ships.
+
+## Versions
+
+- The marketing version is set by hand in exactly two places that must match: `MARKETING_VERSION` in `apps/ios/Config/Base.xcconfig` and `appVersionName` in `apps/android/gradle.properties`. Bump it in its own PR.
+- Build numbers are assigned by CI. Never bump `CURRENT_PROJECT_VERSION` or `versionCode` by hand.
+
+## Release
+
+- Store builds are made by CI (`.github/workflows/release.yml`), never on a laptop.
+- Nothing auto-releases to users. CI uploads to TestFlight / the Play internal track; a person promotes it.
+- The backend a release needs must be live before the release is.
+- Raise the server's minimum version only after the replacement build is available in both stores.

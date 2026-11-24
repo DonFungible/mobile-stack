@@ -1,0 +1,103 @@
+included:
+  - App
+  - Packages/AppCore/Sources
+  - Packages/AppCore/Tests
+excluded:
+  - "**/*.generated.swift"
+  - "**/.build"
+
+disabled_rules:
+  - trailing_comma
+  - todo
+  - opening_brace
+
+opt_in_rules:
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - redundant_nil_coalescing
+  - private_swiftui_state
+
+line_length:
+  warning: 120
+  ignores_comments: true
+identifier_name:
+  min_length: 2
+type_body_length: 300
+file_length: 400
+function_body_length: 60
+nesting:
+  type_level: 2
+
+# The design system is the only place allowed to touch raw SwiftUI controls, colors and fonts.
+# Everything else builds from its primitives, so one fix lands everywhere.
+custom_rules:
+  design_system_text:
+    name: "Use AppText"
+    regex: '(?<![\w.])Text\('
+    included: "App/(Features|Navigation|Common)/"
+    message: "Use AppText from the design system instead of Text."
+    severity: error
+  design_system_button:
+    name: "Use AppButton"
+    regex: '(?<![\w.])Button\('
+    included: "App/(Features|Navigation|Common)/"
+    message: "Use AppButton or AppIconButton from the design system instead of Button."
+    severity: error
+  design_system_toggle:
+    name: "Use AppToggle"
+    regex: '(?<![\w.])Toggle\('
+    included: "App/(Features|Navigation|Common)/"
+    message: "Use AppToggle from the design system instead of Toggle."
+    severity: error
+  design_token_colors:
+    name: "Use AppColor tokens"
+    regex: '(?<![\w.])(Color\((red|white|hue|\.sRGB)|UIColor\(|Color\.(red|blue|green|orange|yellow|pink|purple|gray|black|white)\b)'
+    included: "App/(Features|Navigation|Common)/"
+    message: "Use an AppColor token. Add new colors to packages/design-tokens/tokens.json."
+    severity: error
+  design_token_fonts:
+    name: "Use AppText styles"
+    regex: '\.font\(|Font\.system'
+    included: "App/(Features|Navigation|Common)/"
+    message: "Set type through AppText styles, not .font()."
+    severity: error
+  no_screen_bounds:
+    name: "No UIScreen.main"
+    regex: 'UIScreen\.main'
+    message: "UIScreen.main is frozen at launch and wrong in multitasking. Use GeometryReader or containerRelativeFrame."
+    severity: error
+  no_print:
+    name: "Use Log"
+    regex: '(?<![\w.])(print|debugPrint|NSLog)\('
+    message: "Use Log from AppCore."
+    severity: error
+  networking_seam:
+    name: "Use APIClient"
+    regex: '\bURLSession\b'
+    excluded: "Networking/|Tests/"
+    message: "All requests go through APIClient so auth, request ids and error reporting apply."
+    severity: error
+  storage_seam:
+    name: "Use Preferences"
+    regex: '\bUserDefaults\b'
+    excluded: "Platform/|Tests/"
+    message: "Persist through the core's PreferencesStore so every key is in the StorageKey registry."
+    severity: error
+  core_has_no_ui:
+    name: "Core has no UI"
+    regex: '^\s*import (SwiftUI|UIKit|AppKit)\b'
+    included: "Packages/AppCore/Sources"
+    message: "The core must build and run with no UI framework. Pass the capability in through Platform."
+    severity: error
+  view_contract:
+    name: "Views read state and send actions"
+    regex: '\bviewModel\.(?!state\b|send\(action:)'
+    included: "App/(Features|Navigation|Common)/"
+    message: "A view's whole contract is: read viewModel.state, call viewModel.send(action:)."
+    severity: error
+  no_ticket_references:
+    name: "No ticket ids in code"
+    regex: '//.*\b(ENG|TICKET)-\d+'
+    message: "Ticket ids belong in the commit and PR description, not in source."
+    severity: error

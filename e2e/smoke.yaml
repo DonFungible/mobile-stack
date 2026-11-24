@@ -1,0 +1,25 @@
+# One flow, both platforms: the screens share accessibility ids on purpose.
+# Run: bun run --filter @mobile-stack/ios test:app   (or @mobile-stack/android)
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- tapOn:
+    id: welcome-continue
+- assertVisible:
+    id: item-row-1
+- tapOn:
+    id: item-row-2
+- assertVisible: Wire the real API
+- runFlow: helpers/back.yaml
+- tapOn:
+    id: settings-button
+- tapOn:
+    id: settings-about
+- assertVisible: Bundled fixtures
+- runFlow: helpers/back.yaml
+- tapOn:
+    id: settings-sign-out
+- assertVisible:
+    id: welcome-continue

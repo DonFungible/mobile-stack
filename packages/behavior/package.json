@@ -1,0 +1,18 @@
+{
+  "name": "@mobile-stack/behavior",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "behavior:ios": "PLATFORM=ios bun test",
+    "behavior:android": "PLATFORM=android bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@mobile-stack/contracts": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.3",
+    "@mobile-stack/ios": "workspace:*",
+    "@mobile-stack/android": "workspace:*"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "http": [
+    {
+      "method": "GET",
+      "path": "items",
+      "status": 200,
+      "body": [
+        {
+          "id": 1,
+          "title": "Ship the first build",
+          "summary": "Staging build on a real device, signed in CI.",
+          "updatedAt": "2026-11-01T09:00:00Z"
+        },
+        {
+          "id": 2,
+          "title": "Wire the real API",
+          "summary": "Point API_BASE_URL at your backend and turn fixtures off.",
+          "updatedAt": "2026-11-02T09:00:00Z"
+        },
+        {
+          "id": 3,
+          "title": "Add your first feature",
+          "summary": "Copy the Items feature: view model, node, screen, journey.",
+          "updatedAt": "2026-11-03T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "items/1",
+      "status": 200,
+      "body": {
+        "id": 1,
+        "title": "Ship the first build",
+        "summary": "Staging build on a real device, signed in CI.",
+        "updatedAt": "2026-11-01T09:00:00Z"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "items/2",
+      "status": 200,
+      "body": {
+        "id": 2,
+        "title": "Wire the real API",
+        "summary": "Point API_BASE_URL at your backend and turn fixtures off.",
+        "updatedAt": "2026-11-02T09:00:00Z"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "items/3",
+      "status": 200,
+      "body": {
+        "id": 3,
+        "title": "Add your first feature",
+        "summary": "Copy the Items feature: view model, node, screen, journey.",
+        "updatedAt": "2026-11-03T09:00:00Z"
+      }
+    }
+  ]
+}

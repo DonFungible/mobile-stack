@@ -1,0 +1,20 @@
+{
+  "scheme": "mobilestack",
+  "cases": [
+    { "url": "mobilestack://home", "route": "home" },
+    { "url": "mobilestack://items/42", "route": "itemDetail", "id": "42" },
+    { "url": "mobilestack://settings", "route": "settings" },
+    { "url": "mobilestack://settings/about", "route": "about" },
+    {
+      "url": "https://mobilestack.example.com/items/7",
+      "route": "itemDetail",
+      "id": "7"
+    },
+    { "url": "mobilestack://items/", "route": null },
+    { "url": "mobilestack://items/not a number", "route": null },
+    { "url": "mobilestack://items/0", "route": null },
+    { "url": "mobilestack://unknown", "route": null },
+    { "url": "otherapp://home", "route": null },
+    { "url": "https://evil.example.com/items/7", "route": null }
+  ]
+}

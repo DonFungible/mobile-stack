@@ -1,0 +1,82 @@
+---
+description: What this repo is, how it is laid out, and the commands that verify a change
+alwaysApply: true
+---
+
+# Project overview
+
+Two native apps, one repo: `apps/ios` (Swift 6, SwiftUI) and `apps/android` (Kotlin, Jetpack Compose). They share no runtime code. They share **one behavior test suite** (`packages/behavior`), **fixtures and contracts** (`packages/contracts`), **design tokens** (`packages/design-tokens`), and one set of rules (this file). Turborepo runs every task; Bun is the package manager, the script runtime and the test runner.
+
+The architecture is Reflex (see the Reflex rule below): on each platform a **core** with no UI holds every view model, the navigation tree and all logic; the **mobile** app is a thin host that draws it; a **CLI** host runs the same core headlessly so behavior can be tested, and the app driven, from a terminal.
+
+## Layout
+
+```
+apps/ios/
+  App/                         Mobile: SwiftUI views and platform services. Thin.
+    DesignSystem/              primitives and tokens
+    Common/                    shared feature-level views (LoadStatusView)
+    Features/<Feature>/        <Name>Screen.swift, Components/
+    Navigation/                RootView: draws the tree the core owns
+    Platform/                  Keychain, UserDefaults, haptics, share sheet
+  Packages/AppCore/
+    Sources/AppCore/           Core: no SwiftUI, no UIKit. Builds on macOS.
+      Base/                    ViewModel
+      App/                     MobileStackCore, AppViewModel, StackNavigator
+      Features/                one <Name>ViewModel per screen
+      Introspection/           one node per view model
+      Platform/ Fixtures/      what the core needs from outside, and its fixture forms
+      Networking/ Query/ Auth/ Config/ Services/ Navigation/ Models/ Repositories/ System/
+    Sources/IntrospectionKit/  node protocol, ls/do session, socket server
+    Sources/mobilestack-cli/   CLI host
+    Tests/
+apps/android/
+  app/                         Mobile: Compose screens and platform services. Thin.
+  core/                        Core: a plain JVM module. Cannot import android.* or Compose.
+  introspection/               node interface, ls/do session, socket server
+  cli/                         CLI host
+packages/behavior/             the behavior SDK and journeys; one file runs on both platforms
+packages/contracts/            fixtures/*.json scenarios and deeplinks.json
+packages/design-tokens/        tokens.json -> Swift + Kotlin
+e2e/                           two thin Maestro flows for what only pixels can show
+```
+
+The two trees mirror each other on purpose. A type in one has a same-named twin in the other (`ItemListViewModel`, `StackNavigator`, `APIClient` / `ApiClient`). When you change one, change its twin in the same PR.
+
+## Commands
+
+Run from the repo root. All of them go through Turborepo and are cached.
+
+| Command | What it does |
+| --- | --- |
+| `bun run generate` | Tokens -> both apps, Xcode project from `project.yml`, local secrets files |
+| `bun run format` | SwiftFormat, ktlint (Spotless), Biome |
+| `bun run lint` | SwiftLint, convention checks, Android Lint |
+| `bun run typecheck` | Compile both apps |
+| `bun run test` | Unit tests for primitives: `swift test`, `:core:test`, package tests |
+| `bun run behavior` | The behavior suite against the headless core, on both platforms |
+| `bun run check` | Everything CI runs: format check, lint, typecheck, test, behavior |
+| `bun run cli ios` / `bun run cli android` | Drive the app from the terminal: `ls`, `do Action [json]` |
+| `bun run ios` / `bun run android` | Build, install and launch on a simulator / emulator |
+
+One platform only: `bun run --filter @mobile-stack/ios <task>`, or `bun run --filter @mobile-stack/behavior behavior:android`.
+
+## Naming
+
+- View models: `<Name>ViewModel` in the core. Screens: `<Name>Screen` in the mobile app, taking their view model.
+- Introspection node names are the screen name without a suffix (`ItemList`, `Settings`) and are identical on both platforms: the behavior tests depend on it.
+- Action titles are PascalCase (`SelectItem`); actions a container lends are camelCase (`goBack`, `openLink`).
+- Design-system primitives are prefixed `App` (`AppText`, `AppButton`). Feature code never defines an `App*` type.
+- Repositories: `<Entity>Repository`, one method per endpoint, no caching inside.
+- Accessibility ids are kebab-case and identical on both platforms (`settings-sign-out`).
+
+## Generated files: never edit
+
+- `App/DesignSystem/Tokens.generated.swift`, `designsystem/generated/Tokens.kt` — edit `packages/design-tokens/tokens.json`, run `bun run generate`.
+- `apps/ios/MobileStack.xcodeproj` — edit `apps/ios/project.yml`. The project is not committed.
+- `AGENTS.md` — edit `.cursor/rules/*.mdc`, run `bun run sync-ai-rules`.
+
+## Turborepo notes
+
+- `apps/android/turbo.json` and `apps/ios/turbo.json` chain each app's tasks. Two Gradle, `xcodebuild` or SwiftPM invocations in one project contend for the same build directory, so they run in sequence.
+- `JAVA_HOME`, `ANDROID_HOME` and friends reach tasks through `globalPassThroughEnv` in the root `turbo.json`. A new environment variable a task needs must be added there.

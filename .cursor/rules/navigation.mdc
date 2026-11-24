@@ -1,0 +1,25 @@
+---
+description: Navigation as state in the core, deep links and the root gate
+globs: apps/ios/**/Navigation/**,apps/ios/**/App/*.swift,apps/android/**/navigation/**,apps/android/core/**/app/**,packages/contracts/deeplinks.json
+---
+
+# Navigation
+
+Navigation lives in core. The views draw a stack they do not own.
+
+- **The tree is `AppViewModel` -> `StackNavigator` -> screen view models.** `AppViewModel` is the only gate: forced update, signed out, or the app. Screens never check the session.
+- **Pushing is a state change.** A view model calls `navigation.push(.settings)`; the navigator builds the destination's view model and adds an entry. No view is involved, which is why the CLI can walk the whole app.
+- **The platform's back button and swipe are actions.** iOS reports the new depth (`popTo`); Android's system back sends `goBack`. Never pop a platform stack directly.
+- **Screens exist only while signed in.** The stack is built on sign-in and cleared on sign-out, so nothing fetches without a session and nothing leaks between accounts.
+- **A deep link is the `openLink` action on the app root.** The host hands the URL over and does nothing else.
+- **A route knows its back stack** (`route.stack`), so a link to `settings/about` lands with Settings underneath it.
+- **A link that arrives before sign-in is held** in the root's state and replayed once there is a session. It cannot be used to walk around the update gate.
+- **Unknown links are ignored.** The parser returns nothing rather than guessing; ids must be positive integers in canonical form.
+- **Forced update never locks users out by accident.** Only a readable, higher minimum version blocks the app; a failed check lets them in.
+
+## Adding a destination
+
+1. Add the case to `Route` on both platforms, with its `name` and `stack`.
+2. Add cases to `packages/contracts/deeplinks.json`, including a malformed one. `packages/behavior/tests/deeplinks.test.ts` turns each into a test on both platforms; map the route to its node name there.
+3. Teach both `DeepLinkParser`s the path, and build the screen in both `StackNavigator`s.
+4. `bun run behavior`.
